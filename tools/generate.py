@@ -425,9 +425,10 @@ extern crate alloc;
 
 use aidoku::{{
     alloc::{{String, Vec}},
+    imports::net::{{HttpMethod, Request}},
     prelude::*,
-    Chapter, FilterValue, Listing, ListingProvider, Manga, MangaPageResult, Page, Result,
-    Source,
+    Chapter, FilterValue, ImageRequestProvider, Listing, ListingProvider, Manga,
+    MangaPageResult, Page, PageContext, Result, Source,
 }};
 use {crate.replace("-", "_")}::{{{cfg_ty}, {src_ty}}};
 
@@ -488,7 +489,17 @@ impl ListingProvider for {struct} {{
     }}
 }}
 
-register_source!({struct}, ListingProvider);
+impl ImageRequestProvider for {struct} {{
+    /// Covers, thumbnails, and pages on many of these sites 403 without a
+    /// same-origin Referer (hotlink protection). Aidoku requests images with
+    /// no headers by default, so covers come back blank; adding the Referer
+    /// here is what makes them load.
+    fn get_image_request(&self, url: String, _context: Option<PageContext>) -> Result<Request> {{
+        Ok(Request::new(&url, HttpMethod::Get)?.header("Referer", "https://{domain}/"))
+    }}
+}}
+
+register_source!({struct}, ListingProvider, ImageRequestProvider);
 
 #[cfg(test)]
 mod test {{
