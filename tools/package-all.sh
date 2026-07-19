@@ -39,5 +39,5 @@ done
 echo "packaged $ok  (no wasm for $missing)"
 
 echo "building source list…"
-aidoku build "$OUT"/*.aix -o public -n "Nyora Local" 2>/dev/null | tail -2
-echo "list: $(ls public/sources 2>/dev/null | wc -l | tr -d ' ') packages, $(ls public/icons 2>/dev/null | wc -l | tr -d ' ') icons"
+# Pure Python — no external CLI needed, so the repo builds with only Rust.
+python3 tools/build-list.py "$OUT"/*.aix

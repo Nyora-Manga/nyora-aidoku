@@ -11,6 +11,24 @@ site. Cloudflare interstitials are solved by Aidoku's own host-side WebView
 handler (`CloudflareHandler`), which is applied automatically to every extension
 request — so the device relay isn't needed either.
 
+## Building
+
+Needs only the Rust toolchain — no external CLI:
+
+```sh
+rustup target add wasm32-unknown-unknown     # one time
+python3 tools/generate.py                    # data/ -> one crate per source
+./tools/package-all.sh                       # build all + assemble public/
+```
+
+`package-all.sh` compiles every source in one parallel `cargo build`, zips each
+into a `.aix`, and `tools/build-list.py` writes `public/index.min.json`. The
+Aidoku SDK crate is fetched from git (declared in each `Cargo.toml`); nothing
+else is required.
+
+`public/` is the installable source list — add its `index.min.json` URL in
+Aidoku under Browse -> Source Lists.
+
 ## Why this is tractable
 
 The 1346 kotatsu sources are overwhelmingly *template instances*, not bespoke
@@ -64,7 +82,7 @@ python3 tools/liveness.py                 # refresh data-liveness.json
 cd sources/en.mangaread && cargo test --release   # live test against the site
 ```
 
-Building a distributable `.aix` uses the official CLI (`aidoku package`).
+The `.aix` packaging is done by `tools/package-all.sh` + `tools/build-list.py` (pure Rust + Python).
 
 ## Status
 
