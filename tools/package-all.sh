@@ -34,11 +34,34 @@ echo "compiled: $(ls "$WASM_DIR"/*.wasm 2>/dev/null | wc -l | tr -d ' ') wasm mo
 rm -rf "$OUT" && mkdir -p "$OUT"
 
 package_one() {
-  # aidoku package reuses the workspace build (done above), so this is a fast
-  # up-to-date check plus a package step, not a fresh compile.
-  (cd "sources/$1" && aidoku package >/dev/null 2>&1) \
-    && [ -f "sources/$1/package.aix" ] \
-    && mv "sources/$1/package.aix" "$OUT/$1.aix"
+  # `aidoku package` copies "the first .wasm it finds in the build dir" — and in
+  # a Cargo *workspace* that build dir is the shared root target/ holding all 914
+  # wasms, so every source shipped the same (alphabetically-first) wasm and every
+  # install failed with a network error against the wrong site.
+  #
+  # The CLI walks up from the crate dir and stops at the first target/ it finds,
+  # so a crate-local target/…/release/ containing ONLY this crate's wasm wins over
+  # the shared root. aidoku package reuses the workspace build (no recompile) and
+  # copies the one correct wasm.
+  local id="$1"
+  local crate rel
+  crate=$(sed -n 's/^name = "\(.*\)"/\1/p' "sources/$id/Cargo.toml" | head -1)
+  rel="$WASM_DIR/$(printf '%s' "$crate" | tr '.-' '__').wasm"
+  [ -f "$rel" ] || return 1
+
+  local local_rel="sources/$id/target/wasm32-unknown-unknown/release"
+  rm -rf "sources/$id/target"
+  mkdir -p "$local_rel"
+  cp "$rel" "$local_rel/main.wasm"
+
+  local rc=1
+  if (cd "sources/$id" && aidoku package >/dev/null 2>&1) \
+    && [ -f "sources/$id/package.aix" ]; then
+    mv "sources/$id/package.aix" "$OUT/$id.aix"
+    rc=0
+  fi
+  rm -rf "sources/$id/target"
+  return $rc
 }
 
 ok=0

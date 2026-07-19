@@ -338,18 +338,6 @@
       "baseURL": "https://mangarose.net"
     },
     {
-      "id": "ar.mangasoul",
-      "name": "MangaSoul",
-      "version": 1,
-      "iconURL": "icons/ar.mangasoul-v1.png",
-      "downloadURL": "sources/ar.mangasoul-v1.aix",
-      "languages": [
-        "ar"
-      ],
-      "contentRating": 0,
-      "baseURL": "https://www.manga-soul.com"
-    },
-    {
       "id": "ar.mangaspark",
       "name": "Manga-Spark",
       "version": 1,
@@ -4488,18 +4476,6 @@
       ],
       "contentRating": 0,
       "baseURL": "https://imperiomanhua.com"
-    },
-    {
-      "id": "es.gistamishousefansub",
-      "name": "GistamisHouseFansub",
-      "version": 1,
-      "iconURL": "icons/es.gistamishousefansub-v1.png",
-      "downloadURL": "sources/es.gistamishousefansub-v1.aix",
-      "languages": [
-        "es"
-      ],
-      "contentRating": 0,
-      "baseURL": "https://gistamishousefansub.blogspot.com"
     },
     {
       "id": "es.gremorymangas",
