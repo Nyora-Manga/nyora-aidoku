@@ -1,0 +1,9 @@
+# Strip local filesystem paths from the compiled wasm. Without this, panic
+# location strings embed /Users/<name>/.cargo and .rustup — leaking the
+# builder's username into every published extension.
+[build]
+rustflags = [
+  "--remap-path-prefix=/Users/hasanraza/.cargo=/cargo",
+  "--remap-path-prefix=/Users/hasanraza/.rustup=/rustup",
+  "--remap-path-prefix=/Users/hasanraza/Desktop/kotatsu/Nyora/nyora-aidoku=/src",
+]

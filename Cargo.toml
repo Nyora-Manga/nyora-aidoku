@@ -1,0 +1,13 @@
+# Root workspace. Every generated source is a member so a single
+# `cargo build --release --target wasm32-unknown-unknown` compiles all ~900
+# of them in parallel with the dependency tree built once — packaging them
+# one crate at a time costs ~18s each instead of ~1s.
+[workspace]
+members = ["templates/*", "sources/*"]
+resolver = "2"
+
+[profile.release]
+panic = "abort"
+opt-level = "s"
+strip = true
+lto = true

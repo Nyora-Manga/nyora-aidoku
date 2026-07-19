@@ -1,0 +1,36 @@
+[
+ {
+  "id": "asurascans",
+  "name": "AsuraComic",
+  "lang": "en",
+  "nsfw": false,
+  "contentType": "MANHWA",
+  "engine": "asurascans",
+  "domain": "asurascans.com",
+  "altDomains": [
+   "asuracomic.net"
+  ],
+  "className": "AsuraScansParser",
+  "file": "en/AsuraScansParser.kt",
+  "config": {},
+  "configComplex": {},
+  "overriddenMethods": [
+   "getListPage",
+   "getDetails",
+   "getPages",
+   "getFilterOptions",
+   "availableSortOrders",
+   "filterCapabilities"
+  ],
+  "parsingOverrides": [
+   "getListPage",
+   "getDetails",
+   "getPages"
+  ],
+  "needsCustomLogic": true,
+  "warnings": [
+   "asuracomic.net now 301-redirects TO asurascans.com; the redirect direction reversed from what the extraction recorded."
+  ],
+  "broken": false
+ }
+]
