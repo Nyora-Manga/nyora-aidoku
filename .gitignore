@@ -7,3 +7,6 @@ sources/
 # Scratch
 *.aix.tmp
 .DS_Store
+
+# Intermediate .aix staging (public/ holds the final list)
+dist/

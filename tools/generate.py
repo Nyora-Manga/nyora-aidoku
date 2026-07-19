@@ -394,12 +394,8 @@ aidoku-test = {{ git = "https://github.com/Aidoku/aidoku-rs" }}
 aidoku = {{ git = "https://github.com/Aidoku/aidoku-rs" }}
 {crate} = {{ path = "../../templates/{engine}" }}
 
-[profile.release]
-panic = "abort"
-opt-level = "s"
-strip = true
-lto = true
-
+# The release profile is set once at the workspace root (../../Cargo.toml).
+# Cargo ignores profiles in non-root members, so it is deliberately omitted here.
 """)
     icon = ICONS / f"{ident}.png"
     if icon.exists():

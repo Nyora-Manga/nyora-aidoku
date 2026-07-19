@@ -169,7 +169,7 @@ impl MangaFireSource {
     }
 
     fn get<T: serde::de::DeserializeOwned>(&self, url: &str) -> Result<T> {
-        Ok(Request::new(url, HttpMethod::Get)?.json_owned()?)
+        Request::new(url, HttpMethod::Get)?.json_owned()
     }
 
     // ---- listing -----------------------------------------------------------

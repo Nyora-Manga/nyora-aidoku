@@ -88,11 +88,11 @@ impl MadaraSource {
     // ---- fetch helpers -----------------------------------------------------
 
     pub fn fetch_manga(&self, key: &str) -> Result<Document> {
-        Ok(Request::new(&self.abs(key), HttpMethod::Get)?.html()?)
+        Ok(Request::new(self.abs(key), HttpMethod::Get)?.html()?)
     }
 
     pub fn fetch_chapter(&self, key: &str) -> Result<Document> {
-        Ok(Request::new(&self.abs(key), HttpMethod::Get)?.html()?)
+        Ok(Request::new(self.abs(key), HttpMethod::Get)?.html()?)
     }
 
     // ---- listing -----------------------------------------------------------
@@ -153,7 +153,7 @@ impl MadaraSource {
         } else {
             let body = self.ajax_body(query.as_deref(), page, listing_order);
             Request::new(
-                &format!("{}/wp-admin/admin-ajax.php", self.cfg.base_url()),
+                format!("{}/wp-admin/admin-ajax.php", self.cfg.base_url()),
                 HttpMethod::Post,
             )?
             .header("Content-Type", "application/x-www-form-urlencoded")
@@ -267,7 +267,7 @@ impl MadaraSource {
     /// uses the second would otherwise report no genres at all.
     pub fn genres(&self) -> Result<Vec<(String, String)>> {
         let doc = Request::new(
-            &format!("{}/{}", self.cfg.base_url(), self.cfg.list_url),
+            format!("{}/{}", self.cfg.base_url(), self.cfg.list_url),
             HttpMethod::Get,
         )?
         .html()?;

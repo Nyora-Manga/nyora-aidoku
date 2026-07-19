@@ -12,7 +12,7 @@ extern crate alloc;
 pub mod config;
 
 pub use config::HotComicsConfig;
-pub use nyora_common::{date, IMG_ATTRS};
+pub use nyora_common::date;
 
 use aidoku::{
     alloc::{string::String, string::ToString, vec::Vec},

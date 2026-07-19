@@ -10,7 +10,7 @@ extern crate alloc;
 pub mod config;
 
 pub use config::MangaReaderConfig;
-pub use nyora_common::{date, IMG_ATTRS};
+pub use nyora_common::date;
 
 use aidoku::{
     alloc::{string::String, string::ToString, vec::Vec},
@@ -113,11 +113,11 @@ impl MangaReaderSource {
     }
 
     pub fn fetch_manga(&self, key: &str) -> Result<Document> {
-        Ok(Request::new(&self.abs(key), HttpMethod::Get)?.html()?)
+        Ok(Request::new(self.abs(key), HttpMethod::Get)?.html()?)
     }
 
     pub fn fetch_chapter(&self, key: &str) -> Result<Document> {
-        Ok(Request::new(&self.abs(key), HttpMethod::Get)?.html()?)
+        Ok(Request::new(self.abs(key), HttpMethod::Get)?.html()?)
     }
 
     pub fn listing(&self, id: &str, page: i32) -> Result<MangaPageResult> {

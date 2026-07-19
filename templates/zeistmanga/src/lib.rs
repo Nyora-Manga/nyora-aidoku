@@ -12,7 +12,7 @@ extern crate alloc;
 pub mod config;
 
 pub use config::ZeistConfig;
-pub use nyora_common::{date, IMG_ATTRS};
+pub use nyora_common::date;
 
 use aidoku::{
     alloc::{string::String, string::ToString, vec::Vec},
@@ -204,10 +204,10 @@ impl ZeistSource {
     }
 
     pub fn fetch_manga(&self, key: &str) -> Result<Document> {
-        Ok(Request::new(&self.abs(key), HttpMethod::Get)?.html()?)
+        Ok(Request::new(self.abs(key), HttpMethod::Get)?.html()?)
     }
     pub fn fetch_chapter(&self, key: &str) -> Result<Document> {
-        Ok(Request::new(&self.abs(key), HttpMethod::Get)?.html()?)
+        Ok(Request::new(self.abs(key), HttpMethod::Get)?.html()?)
     }
 
     // ---- details -----------------------------------------------------------
@@ -565,8 +565,6 @@ fn decode(s: &str) -> String {
     String::from_utf8(out).unwrap_or_else(|_| s.into())
 }
 
-#[allow(unused)]
-fn _unused(_: &Element) {}
 
 /// A <script> body is a DataNode, so `text()` is empty and `html()` is
 /// unreliable across HTML engines — `data()` is the accessor that actually

@@ -81,7 +81,7 @@ impl OneMangaSource {
     }
 
     fn home(&self) -> Result<Document> {
-        Ok(Request::new(&self.cfg.base_url(), HttpMethod::Get)?.html()?)
+        Ok(Request::new(self.cfg.base_url(), HttpMethod::Get)?.html()?)
     }
 
     // ---- listing -----------------------------------------------------------
@@ -147,7 +147,7 @@ impl OneMangaSource {
         self.home()
     }
     pub fn fetch_chapter(&self, key: &str) -> Result<Document> {
-        Ok(Request::new(&self.abs(key), HttpMethod::Get)?.html()?)
+        Ok(Request::new(self.abs(key), HttpMethod::Get)?.html()?)
     }
 
     // ---- details -----------------------------------------------------------
