@@ -1,14 +1,26 @@
 #!/usr/bin/env bash
 # Build every source and assemble the .aix packages + source list.
 #
-# `aidoku package` builds one crate at a time, rebuilding the whole dependency
-# tree per source (~18s each, ~4.5h for 900). Instead the sources are workspace
-# members, so ONE cargo invocation compiles them all in parallel with deps built
-# once, and this script zips the results itself.
+# Packaging uses the official Aidoku CLI (`aidoku package` / `aidoku build`) so
+# the .aix and index.min.json are exactly the format Aidoku installs — never a
+# hand-rolled zip. (Hand-zipping added a Payload/ directory entry that Aidoku's
+# installer rejected on "Get".)
 #
-# An .aix is just a zip: Payload/{source.json, main.wasm, icon.png}
+# `aidoku package` normally rebuilds a crate's whole dependency tree (~18s each,
+# ~4.5h for 900 sources). To avoid that, everything is built ONCE up front in a
+# single parallel workspace `cargo build`; `aidoku package` then reuses that
+# build via cargo's up-to-date check and runs in well under a second per crate.
+#
+# Requires: rustup target add wasm32-unknown-unknown, and the Aidoku CLI:
+#   cargo install --git https://github.com/Aidoku/aidoku-rs aidoku-cli
 set -uo pipefail
 cd "$(dirname "$0")/.."
+
+if ! command -v aidoku >/dev/null 2>&1; then
+  echo "error: the 'aidoku' CLI is required." >&2
+  echo "  cargo install --git https://github.com/Aidoku/aidoku-rs aidoku-cli" >&2
+  exit 1
+fi
 
 WASM_DIR=target/wasm32-unknown-unknown/release
 OUT=dist
@@ -20,24 +32,35 @@ cargo build --release --target wasm32-unknown-unknown --keep-going 2>&1 \
 echo "compiled: $(ls "$WASM_DIR"/*.wasm 2>/dev/null | wc -l | tr -d ' ') wasm modules"
 
 rm -rf "$OUT" && mkdir -p "$OUT"
-ok=0; missing=0
+
+package_one() {
+  # aidoku package reuses the workspace build (done above), so this is a fast
+  # up-to-date check plus a package step, not a fresh compile.
+  (cd "sources/$1" && aidoku package >/dev/null 2>&1) \
+    && [ -f "sources/$1/package.aix" ] \
+    && mv "sources/$1/package.aix" "$OUT/$1.aix"
+}
+
+ok=0
 for dir in sources/*/; do
   id=$(basename "$dir")
-  # The wasm is named after the CRATE, not the directory: pkg_id() strips
-  # separators ("ar.mangahublink") while crate_name() keeps them as hyphens
-  # ("ar-mangahub-link"), so derive it from Cargo.toml rather than the dir.
-  crate=$(sed -n 's/^name = "\(.*\)"/\1/p' "$dir/Cargo.toml" | head -1)
-  wasm="$WASM_DIR/$(echo "$crate" | tr '.-' '__').wasm"
-  if [ ! -f "$wasm" ]; then missing=$((missing+1)); echo "$id" >> /tmp/aix-missing.txt; continue; fi
-  stage=$(mktemp -d); mkdir -p "$stage/Payload"
-  cp "$wasm" "$stage/Payload/main.wasm"
-  cp "$dir/res/source.json" "$stage/Payload/source.json" 2>/dev/null || { rm -rf "$stage"; continue; }
-  [ -f "$dir/res/icon.png" ] && cp "$dir/res/icon.png" "$stage/Payload/icon.png"
-  (cd "$stage" && zip -qr package.zip Payload) && mv "$stage/package.zip" "$OUT/$id.aix" && ok=$((ok+1))
-  rm -rf "$stage"
+  if package_one "$id"; then ok=$((ok+1)); else echo "$id" >> /tmp/aix-missing.txt; fi
 done
-echo "packaged $ok  (no wasm for $missing)"
+
+# Retry once — packaging under load occasionally trips on a build lock, and a
+# gap here silently drops that source from the published list.
+if [ -f /tmp/aix-missing.txt ]; then
+  retry=$(sort -u /tmp/aix-missing.txt); : > /tmp/aix-missing.txt
+  for id in $retry; do
+    if package_one "$id"; then ok=$((ok+1)); else echo "$id" >> /tmp/aix-missing.txt; fi
+  done
+fi
+fail=$([ -f /tmp/aix-missing.txt ] && wc -l < /tmp/aix-missing.txt | tr -d ' ' || echo 0)
+echo "packaged $ok  (failed $fail)"
+[ "$fail" != 0 ] && echo "  still failing: $(tr '\n' ' ' < /tmp/aix-missing.txt)"
 
 echo "building source list…"
-# Pure Python — no external CLI needed, so the repo builds with only Rust.
-python3 tools/build-list.py "$OUT"/*.aix
+rm -rf public   # clean, so no stale package survives a rename
+aidoku build "$OUT"/*.aix -o public -n "Nyora Local" 2>&1 | grep -v "no icon" | tail -2
+echo "list: $(ls public/sources 2>/dev/null | wc -l | tr -d ' ') packages, \
+$(ls public/icons 2>/dev/null | wc -l | tr -d ' ') icons"
