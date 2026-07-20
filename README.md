@@ -72,6 +72,31 @@ python3 tools/generate.py                    # data/ -> one crate per source
 `public/index.min.json`. The Aidoku SDK crate is fetched from git (declared in
 each `Cargo.toml`); nothing else is required.
 
+## Continuous integration
+
+`.github/workflows/rebuild-sources.yml` runs the whole `generate → package →
+commit` pipeline unattended, so `public/` never drifts from `data/`/`templates/`
+and nobody hand-commits 900+ `.aix`. It fires on:
+
+- **`repository_dispatch` (`rebuild-sources`)** — sent by nyora-shared's
+  `notify-aidoku.yml` when it moves its `kotatsu-parsers-redo` pin (the upstream
+  source set changed). Needs an `AIDOKU_DISPATCH_PAT` secret in nyora-shared with
+  write access here.
+- **push to `data/**` / `templates/**` / `tools/**`** — republishes packages
+  whenever the sources or parsing logic change.
+- **manual dispatch** — with an optional `refresh_domains` tick to re-probe every
+  source's live domain first (off for automated runs, so a CI IP hitting a
+  Cloudflare geo-block can't silently rewrite a domain).
+
+Pulling **brand-new upstream sources** (with their engine family, domain, and
+per-family config) needs the extracted `repo/*.json` published from
+nyora-data-driven — nyora-shared's runtime catalog only exposes id/name/lang/nsfw.
+Point the `UPSTREAM_DATA_URL` repo variable at that published `repo/` dir and the
+`Sync upstream definitions` step (`tools/sync-upstream.py`) activates: it takes
+the upstream source set + config but keeps this repo's live-domain patches and
+aidoku-only engines. Until then the sync step is a no-op and the pipeline runs
+standalone off the vendored `data/`.
+
 To test a single source against its live site:
 
 ```sh

@@ -1,0 +1,113 @@
+name: Rebuild sources
+
+# Regenerates every source crate and repackages all .aix + the installable list,
+# then commits the result under public/. This is the pipeline that used to be run
+# by hand (python3 tools/generate.py && ./tools/package-all.sh && commit 900+
+# files) — automating it removes the class of mistakes that shipped the wrong
+# wasm / a gitignored 404 list.
+#
+# Runs when:
+#   - nyora-shared changes its kotatsu-parsers pin and dispatches us
+#     (event type: rebuild-sources — see nyora-shared/.github/workflows/notify-aidoku.yml)
+#   - the source data, templates, or tooling change in THIS repo
+#   - manually (workflow_dispatch), optionally re-probing live domains first
+#
+# Full upstream source-sync (pulling brand-new sources with their engine family,
+# domain, and per-family config) needs the extracted repo/*.json published from
+# nyora-data-driven. When that exists, set the UPSTREAM_DATA_URL repo variable and
+# the "Sync upstream definitions" step below activates — nothing else changes.
+
+on:
+  repository_dispatch:
+    types: [rebuild-sources]
+  push:
+    branches: [main]
+    paths:
+      - data/**
+      - templates/**
+      - tools/**
+      - .github/workflows/rebuild-sources.yml
+  workflow_dispatch:
+    inputs:
+      refresh_domains:
+        description: Re-probe every source's live domain before rebuilding
+        type: boolean
+        default: false
+
+concurrency:
+  group: rebuild-sources
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          # keyed on the manifests so the 914-crate build cache survives across runs
+          key: aidoku-workspace
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # The Aidoku CLI (`aidoku package` / `aidoku build`) is what produces the
+      # exact .aix / index.min.json format the app installs. Cached because a
+      # cold `cargo install` of it is a few minutes; the key only changes when
+      # this workflow file does, so it's effectively pinned.
+      - name: Cache aidoku CLI
+        id: aidoku-cli
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/aidoku
+          key: aidoku-cli-${{ hashFiles('.github/workflows/rebuild-sources.yml') }}
+
+      - name: Install aidoku CLI
+        if: steps.aidoku-cli.outputs.cache-hit != 'true'
+        run: cargo install --git https://github.com/Aidoku/aidoku-rs aidoku-cli
+
+      # Activates only when UPSTREAM_DATA_URL points at a published tarball/dir of
+      # extracted engine JSON (nyora-data-driven's repo/). Patch-preserving: keeps
+      # this repo's local domain fixes and aidoku-only engines (mangafire). No-op
+      # when the variable is unset, so the pipeline works standalone until then.
+      - name: Sync upstream definitions
+        if: ${{ vars.UPSTREAM_DATA_URL != '' }}
+        run: python3 tools/sync-upstream.py "${{ vars.UPSTREAM_DATA_URL }}"
+
+      # Manual opt-in only. Re-probing ~900 sites from a CI IP can hit Cloudflare
+      # geo-blocks, so it's off for automated runs to avoid unattended domain
+      # rewrites; run it deliberately from the Actions tab when refreshing domains.
+      - name: Refresh domains
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_domains }}
+        run: python3 tools/refresh-domains.py --apply
+
+      - name: Generate source crates
+        run: python3 tools/generate.py
+
+      - name: Build + package all sources
+        run: ./tools/package-all.sh
+
+      - name: Commit rebuilt packages
+        run: |
+          git config user.name  "hasan72341"
+          git config user.email "hasan72341@users.noreply.github.com"
+          git add -A public data
+          if git diff --cached --quiet; then
+            echo "nothing changed — packages already match the sources"
+            exit 0
+          fi
+          reason="${{ github.event.client_payload.reason }}"
+          msg="chore: rebuild source packages"
+          [ -n "$reason" ] && msg="$msg ($reason)"
+          git commit -m "$msg"
+          git push
