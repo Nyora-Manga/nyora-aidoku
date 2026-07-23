@@ -21,7 +21,7 @@ https://raw.githubusercontent.com/Nyora-Manga/nyora-aidoku/main/public/index.min
 
 ## How it works
 
-The 1000+ kotatsu manga parsers are overwhelmingly *template instances*, not
+The 1000+ source definitions from [nyora-data-driven](https://github.com/Nyora-Manga/nyora-data-driven) are overwhelmingly *template instances*, not
 bespoke code — a Madara source, for example, is usually one constructor:
 `class YaoiScan(context) : MadaraParser(context, YAOISCAN, "yaoiscan.com", 20)`.
 So instead of porting every parser, one Rust template is written per theme
@@ -41,7 +41,7 @@ its own `.wasm`.
 
 ## Engines
 
-Eight of the 35 kotatsu engines are ported, covering **920 sources**:
+Eight of the 35 [nyora-data-driven](https://github.com/Nyora-Manga/nyora-data-driven) template engines are ported, covering **920 sources**:
 
 | engine | sources | notes |
 |---|---:|---|
@@ -80,7 +80,7 @@ and nobody hand-commits 900+ `.aix`. It fires on:
 
 - **`repository_dispatch` (`rebuild-sources`)** — sent by nyora-shared's
   `notify-aidoku.yml` when it moves its `kotatsu-parsers-redo` pin (the upstream
-  source set changed). Needs an `AIDOKU_DISPATCH_PAT` secret in nyora-shared with
+  source set changed via nyora-data-driven). Needs an `AIDOKU_DISPATCH_PAT` secret in nyora-shared with
   write access here.
 - **push to `data/**` / `templates/**` / `tools/**`** — republishes packages
   whenever the sources or parsing logic change.
